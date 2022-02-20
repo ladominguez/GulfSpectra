@@ -1,0 +1,8 @@
+{
+"root"   : "/Users/antonio/Dropbox/espectrosGolfo/2009-07-03-mw59/LPIG",
+"iresp"  : "/Users/antonio/Dropbox/espectrosGolfo/InstrumentResponse",
+"ds_max" : 100e6,
+"dt_lim" : 60,
+"catalog": "/mnt/data01/antonio/Dropbox/CRSMEX/Catalogs/CATALOG_2001_2021.DAT",
+"obs":     "/data01/antonio/Dropbox/BSL/CRSMEX/OBS"
+}

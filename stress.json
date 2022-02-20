@@ -1,0 +1,9 @@
+{
+"resp_type" : "DISP",
+"type_wave" : "P",
+"pre_filt"  : [0.005, 0.0125, 30, 40],  
+"tbef"      : 0.0,
+"Nfft"      : 256,
+"fmin"      : 0.03,
+"fmax"      : 20.0
+}
