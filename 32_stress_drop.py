@@ -127,27 +127,6 @@ for dir in directories:
 			fig, ax = plt.subplots(len(sel) + 1, 1, figsize=(12, 6), sharex=False , squeeze=False)
 			ax = ax.flatten()
 		for k, tr in enumerate(sel):
-			if k == 0:
-				tmaster  = tr
-				t0_utc   = tr.stats.starttime + tr.stats.sac.t2
-				t5_mas   = tr.stats.sac.t2
-				nsamples = 0 # doesn't shift master
-				#print('tmaster: ', t0_utc, ' t5: ', t5_mas)
-			else: 
-				tp_utc  = tr.stats.starttime + tr.stats.sac.t2
-				#print('k: ', k , ' t: ', tp_utc, ' t5: ', tr.stats.sac.t5)
-				try:
-					dt_shift, coeff = xcorr_pick_correction(t0_utc, tmaster, tp_utc, tr, 0.1, 1.6, 1.7, plot=False,
-    	                              filter="bandpass",
-    	                              filter_options={'freqmin': 1, 'freqmax': 10})
-				except:
-					dt_shift = float("NaN")
-				if np.isnan(dt_shift):
-					dt_shift = 0
-				tr.stats.sac.t2 = round(tr.stats.sac.t2 + dt_shift, 2)
-				nsamples = int(np.round((t5_mas - tr.stats.sac.t2)*tmaster.stats.sampling_rate))
-				#print('nsamples: ', dt_shift*tmaster.stats.sampling_rate, ' dt_shift: ', dt_shift, ' tp_utc: ', tp_utc)
-
 			date[k] = tr.stats.starttime.strftime("%Y/%m/%d,%H:%M:%S")
 			Rij[k]  = np.sqrt(tr.stats.sac.dist**2+tr.stats.sac.evdp**2)*1e3
 			dt[k]   = tr.stats.delta
@@ -205,7 +184,7 @@ for dir in directories:
 				twave = tr.stats.sac.a
 				k_sd = 0.32   # Madariaga 1976 - See Shearer page 270
 			else:
-				twave = tr.stats.sac.t2  # ERROR CORREGIR
+				twave = tr.stats.sac.t0  # ERROR CORREGIR
 				k_sd = 0.21   # Madariaga 1976 - See Shearer page 270
 
 			tr.data = tr.data  # WARNING *1e-9
