@@ -98,14 +98,13 @@ for dir in directories:
 		#for k in range(len(sel)):
 		for k,tr in enumerate(sel):
 			RESP_FILE, fmax = get_response_files(params['iresp'], station, tr.stats.starttime)
-			#print('fmax: ', fmax)
 			#print('RESP: ', RESP_FILE)
 			if RESP_FILE is None:
 				Invalid = True
 				continue
 			inv = ob.read_inventory(RESP_FILE)
 			tr.remove_response(inventory=inv, output=resp_type, zero_mean=True, pre_filt=pre_filt, taper=True)
-			tp_wave[k] = tr.stats.sac.t2
+			tp_wave[k] = tr.stats.sac.a
 
 		if Invalid:
 			continue
@@ -138,7 +137,7 @@ for dir in directories:
 			#aux.filter("bandpass", freqmin = 1.0, freqmax = 10., zerophase=True)
 			if plotting:
 				ax[k].plot(aux.times(), aux.data, 'k', linewidth=0.25, label=date[k])
-				ax[k].plot(aux.stats.sac.t2, 0, 'r*', markersize=15)
+				ax[k].plot(aux.stats.sac.a, 0, 'r*', markersize=15)
 				# ax[k].plot(tr.stats.sac.t1,0,'b*',markersize=15)
 				ax[k].grid()
 				ax[k].legend(fontsize=14)
@@ -150,14 +149,15 @@ for dir in directories:
 				y_data_plot = np.where( (aux.times() > x_lims_wave[0]) &  (aux.times() < x_lims_wave[1]) )[0]
 				ax[k].set_ylim( aux.data[y_data_plot].min(), aux.data[y_data_plot].max() )
 
-			index_t5   = np.where(np.logical_and(tr.times() >= t5_mas -1,  aux.times() <= t5_mas + 5 ))
+			index_t5   = np.where(np.logical_and(tr.times() >= tr.stats.sac.a -1,  aux.times() <= tr.stats.sac.a + 5 ))
 			max_val    = np.amax(np.abs(aux.data[index_t5]))
-
+			
+			nsamples = 0 # No shifting, oly needed when analyzing RE
 			roll_aux = 	np.roll(aux.data, nsamples)/max_val
 			if plotting:
 				ax[len(sel)].plot(aux.times(), roll_aux)
 				ax[len(sel)].grid(b=True)
-				ax[len(sel)].set_xlim([t5_mas -0.5, t5_mas + 1.0])
+				ax[len(sel)].set_xlim([tr.stats.sac.a -0.5, tr.stats.sac.a + 1.0])
 
 				x_lims_wave = ax[len(sel)].get_xlim()
 				y_data_plot = np.where( (aux.times() > x_lims_wave[0]) &  (aux.times() < x_lims_wave[1]) )[0]	
@@ -300,7 +300,9 @@ for dir in directories:
 #		    	ax[0].loglog(fspec[key],N[key], color='k', linestyle='--')
 		    	ax.semilogx(fspec[key],np.log10(S[key]), label=date[key] )
 		    	ax.semilogx(fspec[key],np.log10(N[key]), color='k', linestyle='--')
-		    popt, pcov  = curve_fit(brune_log, fspec[key],np.log10(S[key]), bounds=([0, 10],[fmax, 20]), maxfev=1000)
+		    print("A_max: ", np.max(np.log10(S[key])))
+		    print("A_min: ", np.min(np.log10(S[key])))
+		    popt, pcov  = curve_fit(brune_log, fspec[key],np.log10(S[key]), bounds=([0.2, 10],[2.0, 12]), maxfev=1000)
 		    #popt, pcov  = curve_fit(brune_1p, fspec[key],np.log10(S[key]/M0), bounds=(0.25,[fmax]), maxfev=1000)
 		    errors      = np.sqrt(np.diag((pcov)))
 		    fcut[key]   = popt[0]
