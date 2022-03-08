@@ -102,6 +102,7 @@ for dir in directories:
 			if RESP_FILE is None:
 				Invalid = True
 				continue
+			print('RESP: ', RESP_FILE)				
 			inv = ob.read_inventory(RESP_FILE)
 			tr.remove_response(inventory=inv, output=resp_type, zero_mean=True, pre_filt=pre_filt, taper=True)
 			tp_wave[k] = tr.stats.sac.a
@@ -155,7 +156,10 @@ for dir in directories:
 			nsamples = 0 # No shifting, oly needed when analyzing RE
 			roll_aux = 	np.roll(aux.data, nsamples)/max_val
 			if plotting:
-				ax[len(sel)].plot(aux.times(), roll_aux)
+				ax[len(sel)].plot(aux.times(), roll_aux, linewidth=4)
+
+				print('SAC.a: ',aux.stats.sac.a)
+				ax[len(sel)].plot(aux.stats.sac.a, 0, markersize=15)
 				ax[len(sel)].grid(b=True)
 				ax[len(sel)].set_xlim([tr.stats.sac.a -0.5, tr.stats.sac.a + 1.0])
 
@@ -302,7 +306,7 @@ for dir in directories:
 		    	ax.semilogx(fspec[key],np.log10(N[key]), color='k', linestyle='--')
 		    print("A_max: ", np.max(np.log10(S[key])))
 		    print("A_min: ", np.min(np.log10(S[key])))
-		    popt, pcov  = curve_fit(brune_log, fspec[key],np.log10(S[key]), bounds=([0.2, 10],[2.0, 12]), maxfev=1000)
+		    popt, pcov  = curve_fit(brune_log, fspec[key],np.log10(S[key]), bounds=([0.2, 10],[2.0, 15]), maxfev=1000)
 		    #popt, pcov  = curve_fit(brune_1p, fspec[key],np.log10(S[key]/M0), bounds=(0.25,[fmax]), maxfev=1000)
 		    errors      = np.sqrt(np.diag((pcov)))
 		    fcut[key]   = popt[0]

@@ -105,6 +105,9 @@ def get_response_files(dir_resp, station_name, t_start):
     elif station_name.strip() == 'TLIG':
         RESP_FILE = os.path.join(dir_resp, 'TLIG_IG_20091013_21001231.RESP')
 
+    elif station_name.strip() == 'TSIG':
+        RESP_FILE = os.path.join(dir_resp, 'TSIG_IG_20101110_21001231.RESP')
+
     elif station_name.strip() == 'TXIG':
         if t_start >= UTCDateTime(2012, 9, 3) and t_start < UTCDateTime(2014, 4, 8):
             RESP_FILE = os.path.join(
