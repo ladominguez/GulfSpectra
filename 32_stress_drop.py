@@ -27,7 +27,7 @@ pre_filt  = stress["pre_filt"]
 tbef      = stress["tbef"]
 Nfft      = stress["Nfft"]
 fmin      = stress["fmin"]
-#fmax      = stress["fmax"]
+fmax      = stress["fmax"]
 plotting  = True #stress["plotting"]
 
 directories = glob.glob(path)
@@ -97,7 +97,7 @@ for dir in directories:
 		Invalid = False
 		#for k in range(len(sel)):
 		for k,tr in enumerate(sel):
-			RESP_FILE, fmax = get_response_files(params['iresp'], station, tr.stats.starttime)
+			RESP_FILE, fmax_inst = get_response_files(params['iresp'], station, tr.stats.starttime)
 			#print('RESP: ', RESP_FILE)
 			if RESP_FILE is None:
 				Invalid = True
@@ -116,16 +116,55 @@ for dir in directories:
 		dt    = {}
 		mag   = {}
 
+		# Trim to p-wave
+		d       = {}
+		noise   = {}
+		snr     = {}
+		t_data  = {}
+		t_noise = {}
+
+		for k, tr in enumerate(sel):
+			t = tr.times() + tr.stats.sac.b
+			dt[k] = tr.stats.delta
+			if type_wave == 'P':
+				twave = tr.stats.sac.a
+				k_sd = 0.32   # Madariaga 1976 - See Shearer page 270
+			else:
+				twave = tr.stats.sac.t0  # ERROR CORREGIR
+				k_sd = 0.21   # Madariaga 1976 - See Shearer page 270
+
+			tr.data = tr.data  # WARNING *1e-9
+			tpn   = np.argmax(t >= twave)
+			tnbef = int(np.floor(tbef/dt[k]))
+			start_noise = tpn - tnbef - Nfft
+			end_noise   = tpn - tnbef
+			d[k]        = tr.data[tpn - tnbef:tpn - tnbef + Nfft] # - \
+			                    # np.mean(tr.data[tpn - tnbef:tpn - tnbef + Nfft])
+			t_data[k]   = t[tpn - tnbef:tpn - tnbef + Nfft] 
+
+			if start_noise < 0:  # This condition avoid negative values of the index when the record is too short for
+			                     #the noise
+				start_noise = 0
+
+			t_noise[k]  = t[start_noise:end_noise]
+			noise[k]    = tr.data[start_noise :end_noise ] #- \
+			               # np.mean(tr.data[start_noise :end_noise ])
+			taper  = tukey(Nfft, alpha=0.1)
+			d[k]   = np.multiply(d[k], taper)
+			snr[k] = rms(d[k])/rms(noise[k])
 
 		# Plot waveforms
-		waveform_out = os.path.join(dir, station + '.waveform.128s.'+ resp_type + '.png')
-		PS_out       = os.path.join(dir, station + '.128s.' + type_wave + '.' + resp_type + '.png')
-		FFT_out      = os.path.join(dir, station + '.FFT.128s.' + resp_type + '.png')
-		SPEC_out     = os.path.join(dir, station + '.SPE.128s.' + resp_type + '.png')
-		Brune_out    = os.path.join(dir, station + '.BRUNE.128s.' + resp_type + '.png')
+		waveform_out = os.path.join(dir, station + '.waveform.'+ resp_type + '.png')
+		PS_out       = os.path.join(dir, station + '.' + type_wave + '.' + resp_type + '.png')
+		FFT_out      = os.path.join(dir, station + '.FFT.' + resp_type + '.png')
+		SPEC_out     = os.path.join(dir, station + '.SPE.' + resp_type + '.png')
+		Brune_out    = os.path.join(dir, station + '.BRUNE.' + resp_type + '.png')
+
+		# Plot waveforms
 		if plotting:
 			fig, ax = plt.subplots(len(sel) + 1, 1, figsize=(12, 6), sharex=False , squeeze=False)
 			ax = ax.flatten()
+
 		for k, tr in enumerate(sel):
 			date[k] = tr.stats.starttime.strftime("%Y/%m/%d,%H:%M:%S")
 			Rij[k]  = np.sqrt(tr.stats.sac.dist**2+tr.stats.sac.evdp**2)*1e3
@@ -133,12 +172,16 @@ for dir in directories:
 			mag[k]  = tr.stats.sac.mag
 			az[k]   = tr.stats.sac.az
 
+			print("Rij: ", Rij[k]/1e3, " km.")
+
 			aux     = tr.copy()
-			aux.detrend('linear')
+			#aux.detrend('linear')
 			#aux.filter("bandpass", freqmin = 1.0, freqmax = 10., zerophase=True)
 			if plotting:
 				ax[k].plot(aux.times(), aux.data, 'k', linewidth=0.25, label=date[k])
+				ax[k].plot(t_data[k], d[k],'r')
 				ax[k].plot(aux.stats.sac.a, 0, 'r*', markersize=15)
+				ax[k].plot(t_noise[k], noise[k],'b')
 				# ax[k].plot(tr.stats.sac.t1,0,'b*',markersize=15)
 				ax[k].grid()
 				ax[k].legend(fontsize=14)
@@ -156,12 +199,12 @@ for dir in directories:
 			nsamples = 0 # No shifting, oly needed when analyzing RE
 			roll_aux = 	np.roll(aux.data, nsamples)/max_val
 			if plotting:
-				ax[len(sel)].plot(aux.times(), roll_aux, linewidth=4)
+				ax[len(sel)].plot(aux.times(), roll_aux, 'r', linewidth=1)
 
 				print('SAC.a: ',aux.stats.sac.a)
 				ax[len(sel)].plot(aux.stats.sac.a, 0, markersize=15)
 				ax[len(sel)].grid(b=True)
-				ax[len(sel)].set_xlim([tr.stats.sac.a -0.5, tr.stats.sac.a + 1.0])
+				ax[len(sel)].set_xlim([tr.stats.sac.a - tbef, tr.stats.sac.a -tbef + (Nfft-1)*dt[k] ])
 
 				x_lims_wave = ax[len(sel)].get_xlim()
 				y_data_plot = np.where( (aux.times() > x_lims_wave[0]) &  (aux.times() < x_lims_wave[1]) )[0]	
@@ -174,46 +217,17 @@ for dir in directories:
 			plt.savefig(waveform_out)
 			plt.close()
 
-		# Trim to p-wave
-		d       = {}
-		noise   = {}
-		snr     = {}
 		if plotting:
 			fig, ax = plt.subplots(len(sel), 1, figsize=(24, 8), sharex=True, squeeze=False )
 			ax      = ax.flatten()
-		for k, tr in enumerate(sel):
-			t = tr.times() + tr.stats.sac.b
-			dt[k] = tr.stats.delta
-			if type_wave == 'P':
-				twave = tr.stats.sac.a
-				k_sd = 0.32   # Madariaga 1976 - See Shearer page 270
-			else:
-				twave = tr.stats.sac.t0  # ERROR CORREGIR
-				k_sd = 0.21   # Madariaga 1976 - See Shearer page 270
-
-			tr.data = tr.data  # WARNING *1e-9
-			tpn   = np.argmax(t >= twave)
-			tnbef = int(np.floor(tbef/dt[k]))
-			start_noise = tpn - tnbef - Nfft
-			end_noise   = tpn - tnbef
-			d[k]  = tr.data[tpn - tnbef:tpn - tnbef + Nfft] - \
-			        np.mean(tr.data[tpn - tnbef:tpn - tnbef + Nfft])
-			if start_noise < 0:  # This condition avoid negative values of the index when the record is too short for
-			                     #the noise
-				start_noise = 0
-
-			noise[k] = tr.data[start_noise :end_noise ] - \
-			        np.mean(tr.data[start_noise :end_noise ])
-			taper  = tukey(Nfft, alpha=0.1)
-			d[k]   = np.multiply(d[k], taper)
-			snr[k] = rms(d[k])/rms(noise[k])
-			if plotting:
-				ax[k].plot(np.linspace(-0.5, (Nfft-1)*dt[k]-0.5, Nfft),
-			           d[k], 'k', linewidth=1, label=date[k])
-				ax[k].legend(fontsize=14)
-				ax[k].set_ylabel(dict_ylabel[resp_type], fontsize=14)
-				ax[k].plot(np.linspace(-0.5, (Nfft-1)*dt[k]-0.5, Nfft), taper*np.max(d[k]))
-				ax[k].grid()
+			for k, tr in enumerate(sel):
+				if plotting:
+					ax[k].plot(np.linspace(-0.0, (Nfft-1)*dt[k]-0.0, Nfft),
+			           d[k], 'k', linewidth=2, label=date[k])
+					ax[k].legend(fontsize=14)
+					ax[k].set_ylabel(dict_ylabel[resp_type], fontsize=14)
+					ax[k].plot(np.linspace(-0.0, (Nfft-1)*dt[k]-0.0, Nfft), taper*np.max(d[k]))
+					ax[k].grid()
 
 		if plotting:
 			plt.suptitle(station + ' - ' + resp_type + ' - ' + type_wave + ' wave')
@@ -234,6 +248,7 @@ for dir in directories:
 			spec       = np.sqrt(spec/2)
 			spec_noise = np.sqrt(spec_noise/2) 
 			index = np.where(np.logical_and(freq >= fmin, freq <= fmax))
+			print("fmax: ", fmax)
 			error_up   =  np.sqrt(jackknife[index[0], 0]/2)
 			error_down =  np.sqrt(jackknife[index[0], 1]/2) 
 			std_spec   =  (error_up - error_down)/2
@@ -273,6 +288,13 @@ for dir in directories:
 		for key, An in Aspec.items():
 			S[key] = (        An*np.exp(np.pi*fspec[key]*Rij[key]/(vel[type_wave]*Q(fspec[key], az[key])))/(C*G(Rij[key],az[key])))
 			N[key] = (Nspec[key]*np.exp(np.pi*fspec[key]*Rij[key]/(vel[type_wave]*Q(fspec[key], az[key])))/(C*G(Rij[key],az[key])))
+			#print("An: ", np.max(np.log10(An)))
+			#print("vel: ", vel[type_wave])
+			#print("G: ",  1/G(Rij[key],az[key]))
+			#print("f[spec]: ", fspec[key])
+			#print("Q: ",  np.log10(np.exp(np.pi*fspec[key]*Rij[key]/(vel[type_wave]*Q(fspec[key], az[key])))))
+			#print("C: ", -np.log10(C*G(Rij[key],az[key])))
+
 			if plotting:
 				ax.loglog(fspec[key], S[key], label=date[key])
 				ax.loglog(fspec[key], N[key], color='k', linestyle='--')
@@ -304,15 +326,16 @@ for dir in directories:
 #		    	ax[0].loglog(fspec[key],N[key], color='k', linestyle='--')
 		    	ax.semilogx(fspec[key],np.log10(S[key]), label=date[key] )
 		    	ax.semilogx(fspec[key],np.log10(N[key]), color='k', linestyle='--')
-		    print("A_max: ", np.max(np.log10(S[key])))
-		    print("A_min: ", np.min(np.log10(S[key])))
-		    popt, pcov  = curve_fit(brune_log, fspec[key],np.log10(S[key]), bounds=([0.2, 10],[2.0, 15]), maxfev=1000)
+		    print("S_max: ", np.max(np.log10(S[key])))
+		    print("S_min: ", np.min(np.log10(S[key])))
+		    popt, pcov  = curve_fit(brune_log, fspec[key],np.log10(S[key]), bounds=([0.01, 16],[1.0, 18]), maxfev=1000)
 		    #popt, pcov  = curve_fit(brune_1p, fspec[key],np.log10(S[key]/M0), bounds=(0.25,[fmax]), maxfev=1000)
 		    errors      = np.sqrt(np.diag((pcov)))
 		    fcut[key]   = popt[0]
 		    fcuts[key]  = errors[0]
 		    if resp_type == 'DISP':
-		        Mcorr[key]  = np.max(np.log10(S[key]))
+		        #Mcorr[key]  = np.max(np.log10(S[key]))
+		        Mcorr[key]  = popt[1] 
 		        Mcorrs[key] = 0.0
 			    #Mcorr[key]  = np.log10(M0)
 			    #Mcorrs[key] = 0.0 

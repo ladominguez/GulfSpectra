@@ -107,6 +107,18 @@ def get_response_files(dir_resp, station_name, t_start):
 
     elif station_name.strip() == 'TSIG':
         RESP_FILE = os.path.join(dir_resp, 'TSIG_IG_20101110_21001231.RESP')
+    elif station_name.strip() == 'SRIG':
+        RESP_FILE = os.path.join(dir_resp, 'SRIG_IG_20080228_21001231.RESP')
+    elif station_name.strip() == 'SPIG':
+        if t_start >= UTCDateTime(2008, 2, 26) and t_start < UTCDateTime(2010, 10, 28):
+            RESP_FILE = os.path.join(dir_resp,'SPIG_IG_20080226_20101028.RESP')
+        elif t_start > UTCDateTime(2010, 10, 28): 
+            RESP_FILE = os.path.join(dir_resp, 'SPIG_IG_20101028_21001231.RESP')	
+        else:
+            print('ERROR: No RESP file for ',
+                  station_name, ' at time: ', t_start)
+            exit()
+            return None, None
 
     elif station_name.strip() == 'TXIG':
         if t_start >= UTCDateTime(2012, 9, 3) and t_start < UTCDateTime(2014, 4, 8):

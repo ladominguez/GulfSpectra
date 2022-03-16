@@ -21,14 +21,15 @@ def coeff_r2(d_obs, d_model):
 
 
 def clean_directory(dir,type_resp):
-    previous = glob.glob(os.path.join(dir, "*" + type_resp  + "*.png"))
+    #previous = glob.glob(os.path.join(dir, "*" + type_resp  + "*.png"))
+    previous = glob.glob(os.path.join(dir, "*.png")) # Clean all
     for png_file in previous:
         os.remove(png_file)
 
 
 def G(r, azimuth):
     # See Garcia et al. 2009
-    R0 = 10e3
+    R0 = 1
     return R0/r
     # Costal
 
