@@ -1,6 +1,7 @@
 import obspy as ob
 from obspy.signal.cross_correlation import xcorr_pick_correction
 from obspy.core.utcdatetime import UTCDateTime
+from scipy.interpolate import interp1d
 from ssn import get_response_files
 import numpy as np
 import json
@@ -28,6 +29,7 @@ tbef      = stress["tbef"]
 Nfft      = stress["Nfft"]
 fmin      = stress["fmin"]
 fmax      = stress["fmax"]
+Nint      = stress["Nint"]
 plotting  = True #stress["plotting"]
 
 directories = glob.glob(path)
@@ -239,6 +241,8 @@ for dir in directories:
 		Aspec = {}
 		fspec = {}
 		Nspec = {}
+		Aintp = {}   # Interpolated variables
+		fintp = {}
 		if plotting:
 			fig, ax = plt.subplots(1, 1, figsize=(12, 6))
 		for key, tr in d.items():
@@ -256,6 +260,12 @@ for dir in directories:
 			Aspec[key] = spec[index]
 			fspec[key] = freq[index]
 			Nspec[key] = spec_noise[index]
+
+			# Interpolation
+			fintp[key] = np.logspace(np.log10(fmin), np.log10(fmax), Nint)
+			
+
+
 			if plotting:
 				ax.fill_between(freq[index], error_up, error_down, alpha=0.5)
 				ax.loglog(fspec[key], Aspec[key],
@@ -321,14 +331,20 @@ for dir in directories:
 			fig, ax = plt.subplots(1,1, figsize = (8,10))
 		for key, fb in fspec.items():
 		    M0 = M0_func(mag[key])
+
+			# Interpolation
+		    func_intp  = interp1d(fspec[key],np.log10(S[key]), fill_value='extrapolate')
+		    Aintp[key] = func_intp(fintp[key])
+
 		    if plotting:
 #		    	ax[0].loglog(fspec[key],S[key], label=date[key] )
 #		    	ax[0].loglog(fspec[key],N[key], color='k', linestyle='--')
 		    	ax.semilogx(fspec[key],np.log10(S[key]), label=date[key] )
 		    	ax.semilogx(fspec[key],np.log10(N[key]), color='k', linestyle='--')
-		    print("S_max: ", np.max(np.log10(S[key])))
-		    print("S_min: ", np.min(np.log10(S[key])))
-		    popt, pcov  = curve_fit(brune_log, fspec[key],np.log10(S[key]), bounds=([0.01, 16],[1.0, 18]), maxfev=1000)
+		    	ax.semilogx(fintp[key], Aintp[key],color='r',marker='o')
+
+		    popt, pcov  = curve_fit(brune_log, fintp[key],Aintp[key], bounds=([0.01, 15],[3.0, 20]), maxfev=1000) # Interpolation
+		    #popt, pcov  = curve_fit(brune_log, fspec[key],np.log10(S[key]), bounds=([0.01, 16],[1.0, 18]), maxfev=1000) # No interpolation
 		    #popt, pcov  = curve_fit(brune_1p, fspec[key],np.log10(S[key]/M0), bounds=(0.25,[fmax]), maxfev=1000)
 		    errors      = np.sqrt(np.diag((pcov)))
 		    fcut[key]   = popt[0]
@@ -349,14 +365,14 @@ for dir in directories:
 		    #stress[key] = stress_drop(fcut[key], k_sd, vel['S'], M0 )/1e6
 		if plotting:
 			plt.gca().set_prop_cycle(None)
-		for key, fb in fspec.items():
+		for key, fb in fintp.items():
 		    #M0 = M0_func(mag[key])
 		    Mw[key] = Mw_log(Mcorr[key])
 		    if plotting:
 		    	ax.semilogx(fb, brune_log(fb, fcut[key], Mcorr[key]),'o-')
 
-		    var[key] = variance_reduction(np.log10(S[key]),brune_log(fb, fcut[key], Mcorr[key] ))
-		    r2[key]  = coeff_r2(          np.log10(S[key]),brune_log(fb, fcut[key], Mcorr[key] ))
+		    var[key] = variance_reduction(Aintp[key],brune_log(fb, fcut[key], Mcorr[key] ))
+		    r2[key]  = coeff_r2(          Aintp[key],brune_log(fb, fcut[key], Mcorr[key] ))
 		    print('fcut[', key,']: ', '%5.2f'%fcut[key], ' Mcorr[', key, ']: ', '%5.2f'%Mcorr[key], 
 			' Stress drop[', key, ']: ', '%6.3f'%stress[key], 'MPa   SNR: ' + '%5.1f'%snr[key],
 			' Mw[', key, ']: ', '%3.1f'%Mw[key], ' Md[', key, ']: ', '%3.1f'%mag[key], ' Res[', key, ']: ',
@@ -366,15 +382,14 @@ for dir in directories:
 				+ resp_type + '    ' 
 				+ date[key] + '    ' 
 				+ '%6.1f'%(Rij[key]/1e3) + '    ' 
-				+ '%3.1f'%mag[key]  + '    ' 
+				+ '%3.1f'%mag[key]  + '    '  
 				+ '%3.1f'%Mw[key]    + '    '   
-			    + '%5.2f'%fcut[key]  + '    ' + '%6.3f'%fcuts[key]   + '    '
+			    + '%5.2f'%fcut[key]  + '    ' + '%6.3f'%fcuts[key]   + '    ' 
 				+ '%5.2f'%Mcorr[key] + '    ' + '%6.3f'%Mcorrs[key]  + '    '
 				+ '%6.3f'%stress[key]  + '    ' 
 				+ '%5.1f'%snr[key]     + '    ' 
 				+ '%5.3f'%var[key]     + '    '
-				+ '%5.1f'%r2[key]      + '    ' 
-			 + '\n')
+				+ '%5.1f'%r2[key]      + '    ' + '\n')
 
 		if plotting:
 #			ax[0].grid(b=True, which='major', color='k', linestyle='--',linewidth=0.25)
