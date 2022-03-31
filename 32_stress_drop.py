@@ -88,7 +88,7 @@ def main():
     fout = open(Data_out, 'w')
     fout.write('Station  Wave    Type      date_time         distance     Mcat  Mw     fcut   std_fcut    Mcorr    std_Mcorr   Stress    SNR     VarRed      R2    ID \n')
     # for dir in directories:
-    sac = ob.read(os.path.join(path, "waveform/*Z.sac"))
+    sac = ob.read(os.path.join(path, "waveforms/*Z.sac"))
     sac.detrend('linear')
     sta = set([tr.stats.sac.kstnm for tr in sac])
     sta = sorted(sta)
@@ -202,7 +202,7 @@ def main():
             #aux.filter("bandpass", freqmin = 1.0, freqmax = 10., zerophase=True)
             if plotting:
                 ax1[count].plot(aux.times(), aux.data, 'k', linewidth=0.25,
-                                label=station + ' R=' + '%5.1f' % (Rij[k]/1e3) + " km.")
+                                label=station + ' R=' + '%5.1f' % (Rij[count]/1e3) + " km.")
                 ax1[count].plot(t_data[k], d[k], 'r')
                 ax1[count].plot(aux.stats.sac.a, 0, 'r*', markersize=15)
                 ax1[count].plot(t_noise[k], noise[k], 'b')
@@ -280,8 +280,7 @@ def main():
 
             if plotting:
                 ax3.fill_between(freq[index], error_up, error_down, alpha=0.5)
-                ax3.loglog(fspec[key], Aspec[key],
-                           label=station + ' (' + '%5.1f'%(Rij[k]/1e3)  + ' km)')
+                ax3.loglog(fspec[key], Aspec[key], label=station + ' (' + '%5.1f'%(Rij[count]/1e3)  + ' km)')
                 ax3.loglog(fspec[key], Nspec[key], 'k')
 
         # Geometrical spreading
@@ -302,7 +301,7 @@ def main():
                                         (vel[type_wave]*Q(fspec[key], az[key])))/(C*G(Rij[key], az[key])))
 
             if plotting:
-                ax4.loglog(fspec[key], S[key], label=station + ' (' + '%5.1f'%(Rij[k]/1e3)  + ' km)')
+                ax4.loglog(fspec[key], S[key], label=station + ' (' + '%5.1f'%(Rij[count]/1e3)  + ' km)')
                 ax4.loglog(fspec[key], N[key], color='k', linestyle='--')
 
         for key, fb in fspec.items():
@@ -320,7 +319,7 @@ def main():
                 #ax5.semilogx(fintp[key], Aintp[key],color='r',marker='o')
 
             popt, pcov = curve_fit(brune_log, fintp[key], Aintp[key], bounds=(
-                [0.01, 15], [3.0, 20]), maxfev=1000)  # Interpolation
+                [0.01, 14], [3.0, 22]), maxfev=1000)  # Interpolation
             # popt, pcov  = curve_fit(brune_log, fspec[key],np.log10(S[key]), bounds=([0.01, 16],[1.0, 18]), maxfev=1000) # No interpolation
             #popt, pcov  = curve_fit(brune_1p, fspec[key],np.log10(S[key]/M0), bounds=(0.25,[fmax]), maxfev=1000)
             errors = np.sqrt(np.diag((pcov)))
