@@ -32,7 +32,8 @@ def get_response_files(dir_resp, station_name, t_start):
             RESP_FILE = os.path.join(
                 dir_resp, 'PNIG_IG_19940328_20070711.RESP')
         elif t_start >= UTCDateTime(2007, 7, 11) and t_start < UTCDateTime(2013, 10, 29):
-            RESP_FILE = os.path.join(dir_resp, 'PNIG_IG_20070711_20131029.RESP')
+            RESP_FILE = os.path.join(
+                dir_resp, 'PNIG_IG_20070711_20131029.RESP')
         elif t_start >= UTCDateTime(2013, 10, 29) and t_start < UTCDateTime(2014, 6, 24):
             RESP_FILE = os.path.join(
                 dir_resp, 'PNIG_IG_20131029_20140624.RESP')
@@ -40,7 +41,8 @@ def get_response_files(dir_resp, station_name, t_start):
             RESP_FILE = os.path.join(
                 dir_resp, 'PNIG_IG_20140624_20181020.RESP')
         elif t_start >= UTCDateTime(2018, 10, 20):
-            RESP_FILE = os.path.join(dir_resp, 'PNIG_IG_20181020_21001231.RESP')
+            RESP_FILE = os.path.join(
+                dir_resp, 'PNIG_IG_20181020_21001231.RESP')
         else:
             print('ERROR: No RESP file for ',
                   station_name, ' at time: ', t_start)
@@ -48,13 +50,17 @@ def get_response_files(dir_resp, station_name, t_start):
             return None, None
     elif station_name.strip() == 'MAIG':
         if t_start >= UTCDateTime(1996, 2, 25) and t_start < UTCDateTime(2013, 8, 15):
-            RESP_FILE = os.path.join(dir_resp,'MAIG_IG_19960225_20130815.RESP')
+            RESP_FILE = os.path.join(
+                dir_resp, 'MAIG_IG_19960225_20130815.RESP')
         elif t_start >= UTCDateTime(2013, 8, 15) and t_start < UTCDateTime(2016, 9, 5):
-            RESP_FILE = os.path.join(dir_resp,'MAIG_IG_20130815_20160905.RESP')
-        elif t_start >= UTCDateTime(2016, 9, 5) and t_start < UTCDateTime(2018,11, 5):
-            RESP_FILE = os.path.join(dir_resp,'MAIG_IG_20160905_20181105.RESP')
-        elif t_start >= UTCDateTime(2018,11, 5):
-            RESP_FILE = os.path.join(dir_resp,'MAIG_IG_20181105_21001231.RESP')
+            RESP_FILE = os.path.join(
+                dir_resp, 'MAIG_IG_20130815_20160905.RESP')
+        elif t_start >= UTCDateTime(2016, 9, 5) and t_start < UTCDateTime(2018, 11, 5):
+            RESP_FILE = os.path.join(
+                dir_resp, 'MAIG_IG_20160905_20181105.RESP')
+        elif t_start >= UTCDateTime(2018, 11, 5):
+            RESP_FILE = os.path.join(
+                dir_resp, 'MAIG_IG_20181105_21001231.RESP')
         else:
             print('ERROR: No RESP file for ',
                   station_name, ' at time: ', t_start)
@@ -73,6 +79,23 @@ def get_response_files(dir_resp, station_name, t_start):
                   station_name, ' at time: ', t_start)
             exit()
             return None, None
+    elif station_name.strip() == 'MOIG':
+        if t_start >= UTCDateTime(1995, 6, 8) and t_start < UTCDateTime(2000, 6, 1):
+            RESP_FILE = os.path.join(dir_resp, 'MOIG_IG_19950608_2000601.RESP')
+        elif t_start >= UTCDateTime(2000, 6, 1) and t_start < UTCDateTime(2013, 8, 12):
+            RESP_FILE = os.path.join(dir_resp, 'MOIG_IG_2000601_20130812.RESP')
+        elif t_start >= UTCDateTime(2013, 8, 12) and t_start < UTCDateTime(2017, 10, 25):
+            RESP_FILE = os.path.join(
+                    dir_resp, 'MOIG_IG_20130812_20171025.RESP')
+        elif t_start >= UTCDateTime(2017, 10, 25):
+            RESP_FILE = os.path.join(
+                    dir_resp, 'MOIG_IG_20171025_21001231.RESP')
+        else: 
+            print('ERROR: No RESP file for ',
+                  station_name, ' at time: ', t_start)
+            exit()
+            return None, None
+
 
     elif station_name.strip() == 'OXIG':
         if t_start >= UTCDateTime(1994, 3, 2) and t_start < UTCDateTime(2007, 1, 22):
