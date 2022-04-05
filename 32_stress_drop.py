@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #from socket import AF_X25
 import obspy as ob
 from obspy.signal.cross_correlation import xcorr_pick_correction
