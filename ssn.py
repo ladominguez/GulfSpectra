@@ -96,7 +96,6 @@ def get_response_files(dir_resp, station_name, t_start):
             exit()
             return None, None
 
-
     elif station_name.strip() == 'OXIG':
         if t_start >= UTCDateTime(1994, 3, 2) and t_start < UTCDateTime(2007, 1, 22):
             fmax = 8
