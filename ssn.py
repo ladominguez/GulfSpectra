@@ -1,6 +1,7 @@
 import os
 from obspy.core.utcdatetime import UTCDateTime
 
+NARS=set(line.strip() for line in open('NARS.stations'))
 
 def get_response_files(dir_resp, station_name, t_start):
     fmax = 20
@@ -95,6 +96,8 @@ def get_response_files(dir_resp, station_name, t_start):
                   station_name, ' at time: ', t_start)
             exit()
             return None, None
+    elif station_name.strip() in NARS:	   
+        RESP_FILE = os.path.join(dir_resp,  'RESP.' + station_name.strip() + '.NR..BHZ')
 
     elif station_name.strip() == 'OXIG':
         if t_start >= UTCDateTime(1994, 3, 2) and t_start < UTCDateTime(2007, 1, 22):

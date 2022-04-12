@@ -91,7 +91,7 @@ def main():
     fout = open(Data_out, 'w')
     fout.write('Station  Wave    Type      date_time         distance     Mcat  Mw     fcut   std_fcut    Mcorr    std_Mcorr   Stress    SNR     VarRed      R2    ID \n')
     # for dir in directories:
-    sac = ob.read(os.path.join(path, "waveforms/*Z.sac"))
+    sac = ob.read(os.path.join(path, "waveforms/*HZ*.sac"))
     sac.detrend('linear')
     sta = set([tr.stats.sac.kstnm for tr in sac])
     sta = sorted(sta)
