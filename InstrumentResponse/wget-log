@@ -1,0 +1,6 @@
+--2022-04-10 20:45:51--  https://service.iris.edu/irisws/resp/1/query?net=NR
+Resolving service.iris.edu... 128.95.166.47
+Connecting to service.iris.edu|128.95.166.47|:443... connected.
+HTTP request sent, awaiting response... 400 
+2022-04-10 20:45:52 ERROR 400: (no description).
+
