@@ -80,6 +80,18 @@ def get_response_files(dir_resp, station_name, t_start):
                   station_name, ' at time: ', t_start)
             exit()
             return None, None
+    elif station_name.strip() == 'LPIG':
+        if t_start >= UTCDateTime(1996, 9, 8) and t_start < UTCDateTime(2008, 2, 10):
+            RESP_FILE = os.path.join(
+                dir_resp, 'LPIG_IG_19960908_20080210.RESP')
+        elif t_start >= UTCDateTime(2008, 2, 10):
+            RESP_FILE = os.path.join(
+                dir_resp, 'LPIG_IG_20080210_21001231.RESP')
+        else:
+            print('ERROR: No RESP file for ',
+                  station_name, ' at time: ', t_start)
+            exit()
+            return None, None
     elif station_name.strip() == 'MOIG':
         if t_start >= UTCDateTime(1995, 6, 8) and t_start < UTCDateTime(2000, 6, 1):
             RESP_FILE = os.path.join(dir_resp, 'MOIG_IG_19950608_2000601.RESP')
