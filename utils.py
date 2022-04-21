@@ -54,8 +54,8 @@ def G(r, azimuth):
 
 
 def Q(f, azimuth):
-    return 223*(9/4.0)*np.power(f,1.2) 
-        #Castro et al 2019
+    #return 48*np.power(f,0.88)
+    return 223*(9/4.0)*np.power(f,1.2)  #Castro et al 2019
 	# See Garcia et al. 2009
     # Costal
 #    if ((azimuth >= 260) and (azimuth <= 315)) or ((azimuth >= 100) and (azimuth <= 150)):

@@ -66,6 +66,8 @@ def get_response_files(dir_resp, station_name, t_start):
             print('ERROR: No RESP file for ',
                   station_name, ' at time: ', t_start)
             exit()
+    elif station_name.strip() == 'SBLS':
+        RESP_FILE = os.path.join(dir_resp,'RESP.SLBS.IU.10.BHZ' )        
 
     elif station_name.strip() == 'MEIG':
         if t_start >= UTCDateTime(2004, 9, 8) and t_start < UTCDateTime(2014, 4, 26):
