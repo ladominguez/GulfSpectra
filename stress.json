@@ -3,7 +3,7 @@
 "type_wave" : "P",
 "pre_filt"  : [0.005, 0.0125, 30, 40],  
 "tbef"      : 0.2,
-"Nfft"      : 256,
+"Nfft"      : 512,
 "fmin"      : 0.1,
 "fmax"      : 5.0,
 "Nint"      : 21

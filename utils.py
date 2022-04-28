@@ -54,7 +54,8 @@ def G(r, azimuth):
 
 
 def Q(f, azimuth):
-    #return 48*np.power(f,0.88)
+    #return 39*np.power(f,0.64)
+    #return 380*np.power(f,0.1)  # Ortega 2007
     return 223*(9/4.0)*np.power(f,1.2)  #Castro et al 2019
 	# See Garcia et al. 2009
     # Costal

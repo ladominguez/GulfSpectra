@@ -10,7 +10,7 @@ from ssn import get_response_files
 import numpy as np
 import json
 import glob
-import os
+import os, sys
 from matplotlib import pyplot as plt
 from scipy.signal import tukey
 from ssn import get_response_files
@@ -81,13 +81,14 @@ def brune_1p(f, fc):
         None
     return Sb_log
 
-
-def main():
-    print('path: ', params['root'])
+if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        path=os.path.join(os.getcwd(),sys.argv[1])	  
+    print('path: ', path)
     earthquake = path.split('/')[-1]
     print('eq: ', earthquake)
     Data_out = os.path.join(
-        params['root'], earthquake + '.stress_drop.' + resp_type + '.dat')
+        path, earthquake + '.stress_drop.' + resp_type + '.dat')
     fout = open(Data_out, 'w')
     fout.write('Station  Wave    Type      date_time         distance     Mcat  Mw     fcut   std_fcut    Mcorr    std_Mcorr   Stress    SNR     VarRed      R2    ID \n')
     # for dir in directories:
@@ -142,7 +143,7 @@ def main():
                 Invalid = True
                 continue
             print('RESP: ', RESP_FILE)
-            inv = ob.read_inventory(RESP_FILE)
+            inv = ob.read_inventory(RESP_FILE, format='RESP')
             tr.remove_response(inventory=inv, output=resp_type,
                                zero_mean=True, pre_filt=pre_filt, taper=True)
             tp_wave[k] = tr.stats.sac.a
@@ -434,5 +435,5 @@ def main():
     fout.close()
 
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#    main()
