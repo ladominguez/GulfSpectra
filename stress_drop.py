@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #from socket import AF_X25
+import argparse
 import obspy as ob
 from obspy.signal.cross_correlation import xcorr_pick_correction
 from obspy.core.utcdatetime import UTCDateTime
@@ -10,7 +11,8 @@ from ssn import get_response_files
 import numpy as np
 import json
 import glob
-import os, sys
+import os
+import sys
 from matplotlib import pyplot as plt
 from scipy.signal import tukey
 from ssn import get_response_files
@@ -42,8 +44,6 @@ directories.sort()
 dict_ylabel = {"DISP": f"$m$", "VEL": f"$m/s$", "ACC": f"$m/s^2$"}
 dict_title = {"DISP": "Displacement", "VEL": "Velocity", "ACC": "Acceleration"}
 vel = {"P": 6230, "S": 3900}
-
-print("0. stress: ", stress)
 
 
 # def brune_spectrum(f, fc, stress):
@@ -81,16 +81,25 @@ def brune_1p(f, fc):
         None
     return Sb_log
 
+
 if __name__ == '__main__':
-    if len(sys.argv) == 2:
-        path=os.path.join(os.getcwd(),sys.argv[1])	  
-    print('path: ', path)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--directory', type=str, default=path,
+                        help='Working directory containing the waveforms subdirectory.')
+    parser.add_argument('-N', '--Nfft', type=int, default=Nfft,
+                        help='Number of points of the time window (preferably a power of 2)')
+    parser.add_argument('--fmin', type=float, default=fmin, help='Minimum frequency.')
+    parser.add_argument('--fmax', type=float, default=fmax, help='Maximum frequency.')
+    args = parser.parse_args()
+    path = args.directory
+    Nfft = args.Nfft
+    fmin = args.fmin
+    fmax = args.fmax
+
     earthquake = path.split('/')[-1]
-    print('eq: ', earthquake)
     Data_out = os.path.join(
         path, earthquake + '.stress_drop.' + resp_type + '.dat')
     fout = open(Data_out, 'w')
-    fout.write('Station  Wave    Type      date_time         distance     Mcat  Mw     fcut   std_fcut    Mcorr    std_Mcorr   Stress    SNR     VarRed      R2    ID \n')
     # for dir in directories:
     sac = ob.read(os.path.join(path, "waveforms/*HZ*.sac"))
     sac.detrend('linear')
@@ -99,34 +108,35 @@ if __name__ == '__main__':
     clean_directory(path, resp_type)
     # Plot waveforms
     waveform_out = os.path.join(path, 'WAVEFORM.' + resp_type + '.png')
-    PS_out    = os.path.join(path, type_wave + '.' + resp_type + '.png')
-    FFT_out   = os.path.join(path, 'FFT.' + resp_type + '.png')
-    SPEC_out  = os.path.join(path, 'SPE.' + resp_type + '.png')
+    PS_out = os.path.join(path, type_wave + '.' + resp_type + '.png')
+    FFT_out = os.path.join(path, 'FFT.' + resp_type + '.png')
+    SPEC_out = os.path.join(path, 'SPE.' + resp_type + '.png')
     Brune_out = os.path.join(path, 'BRUNE.' + resp_type + '.png')
 
     # Plot waveforms
     if plotting:
-        fig1, ax1 = plt.subplots(len(sta), 1, figsize=(12, 6), sharex=False, squeeze=False)
+        fig1, ax1 = plt.subplots(len(sta), 1, figsize=(
+            6, 12), sharex=False, squeeze=False) # Waveforms
         ax1 = ax1.flatten()
-        fig2, ax2 = plt.subplots(len(sta), 1, figsize=(24, 8), sharex=True, squeeze=False)
+        fig2, ax2 = plt.subplots(len(sta), 1, figsize=(
+            8, 24), sharex=True, squeeze=False)
         ax2 = ax2.flatten()
-        fig3, ax3 = plt.subplots(1, 1, figsize=(12, 6))
-        fig4, ax4 = plt.subplots(1, 1, figsize=(12, 6))
+        fig3, ax3 = plt.subplots(1, 1, figsize=(6, 10)) # Original spectrum
+        fig4, ax4 = plt.subplots(1, 1, figsize=(6, 12))
         fig5, ax5 = plt.subplots(1, 1, figsize=(8, 10))
 
-    Rij    = {}
-    fcut   = {}
-    fcuts  = {}
-    Mcorr  = {}
+    Rij = {}
+    fcut = {}
+    fcuts = {}
+    Mcorr = {}
     Mcorrs = {}
     stress = {}
-    Mw     = {}
-    var    = {}
-    r2     = {}
+    Mw = {}
+    var = {}
+    r2 = {}
     snr = {}
 
     for count, station in enumerate(sta):
-        print(count + 1, " - ", station)
         sel = sac.select(station=station)
         # if True: #os.path.exists(RESP_FILE):
         # sel.detrend()
@@ -142,7 +152,6 @@ if __name__ == '__main__':
             if RESP_FILE is None:
                 Invalid = True
                 continue
-            print('RESP: ', RESP_FILE)
             inv = ob.read_inventory(RESP_FILE, format='RESP')
             tr.remove_response(inventory=inv, output=resp_type,
                                zero_mean=True, pre_filt=pre_filt, taper=True)
@@ -155,6 +164,7 @@ if __name__ == '__main__':
         az = {}
         dt = {}
         mag = {}
+        duration = {}
 
         # Trim to p-wave
         d = {}
@@ -164,7 +174,8 @@ if __name__ == '__main__':
 
         for k, tr in enumerate(sel):
             t = tr.times() + tr.stats.sac.b
-            dt[k] = tr.stats.delta
+            dt[k] = float(tr.stats.delta)
+            duration[k] = dt[k]*Nfft		
             if type_wave == 'P':
                 twave = tr.stats.sac.a
                 k_sd = 0.32   # Madariaga 1976 - See Shearer page 270
@@ -199,8 +210,6 @@ if __name__ == '__main__':
             mag[k] = tr.stats.sac.mag
             az[k] = tr.stats.sac.az
 
-            print("Rij: ", Rij[k]/1e3, " km.")
-
             aux = tr.copy()
             # aux.detrend('linear')
             #aux.filter("bandpass", freqmin = 1.0, freqmax = 10., zerophase=True)
@@ -217,7 +226,8 @@ if __name__ == '__main__':
                 ax1[count].tick_params(axis='y', labelsize=8)
 
                 ax1[count].set_ylabel(dict_ylabel[resp_type], fontsize=14)
-                ax1[count].set_xlim([0, np.ceil(tp_wave.max()*3/5)*5])
+                ax1[count].set_xlim(
+                    [np.floor(tp_wave.min()) - 10.0, np.ceil(tp_wave.max() + 20.0)])
 
                 x_lims_wave = ax1[count].get_xlim()
                 y_data_plot = np.where((aux.times() > x_lims_wave[0]) & (
@@ -263,7 +273,8 @@ if __name__ == '__main__':
         Aintp = {}   # Interpolated variables
         fintp = {}
         for key, tr in d.items():
-            spec, freq, jackknife, _, _ = mtspec(data=tr, delta=dt[key], time_bandwidth=3, nfft=len(tr), statistics=True)
+            spec, freq, jackknife, _, _ = mtspec(
+                data=tr, delta=dt[key], time_bandwidth=3, nfft=len(tr), statistics=True)
             spec_noise, freq_noise, jackknife_noise, _, _ =  \
                 mtspec(data=noise[key], delta=dt[key], time_bandwidth=3, nfft=len(
                     noise[key]), statistics=True)
@@ -284,7 +295,8 @@ if __name__ == '__main__':
 
             if plotting:
                 ax3.fill_between(freq[index], error_up, error_down, alpha=0.5)
-                ax3.loglog(fspec[key], Aspec[key], label=station + ' (' + '%5.1f'%(Rij[count]/1e3)  + ' km)')
+                ax3.loglog(fspec[key], Aspec[key], label=station +
+                           ' (' + '%5.1f' % (Rij[count]/1e3) + ' km)')
                 ax3.loglog(fspec[key], Nspec[key], 'k')
 
         # Geometrical spreading
@@ -305,7 +317,8 @@ if __name__ == '__main__':
                                         (vel[type_wave]*Q(fspec[key], az[key])))/(C*G(Rij[key], az[key])))
 
             if plotting:
-                ax4.loglog(fspec[key], S[key], label=station + ' (' + '%5.1f'%(Rij[count]/1e3)  + ' km)')
+                ax4.loglog(fspec[key], S[key], label=station +
+                           ' (' + '%5.1f' % (Rij[count]/1e3) + ' km)')
                 ax4.loglog(fspec[key], N[key], color='k', linestyle='--')
 
         for key, fb in fspec.items():
@@ -317,7 +330,8 @@ if __name__ == '__main__':
             Aintp[key] = func_intp(fintp[key])
 
             if plotting:
-                line, = ax5.semilogx(fspec[key], np.log10(S[key]), label=station)
+                line, = ax5.semilogx(
+                    fspec[key], np.log10(S[key]), label=station)
                 ax5.semilogx(fspec[key], np.log10(N[key]),
                              color='k', linestyle='--')
                 #ax5.semilogx(fintp[key], Aintp[key],color='r',marker='o')
@@ -344,51 +358,67 @@ if __name__ == '__main__':
             stress[count] = stress_drop(
                 fcut[count], k_sd, vel['S'], np.power(10, Mcorr[count]))/1e6
             #stress[key] = stress_drop(fcut[key], k_sd, vel['S'], M0 )/1e6
-        #if plotting:
+        # if plotting:
         #    fig5.gca().set_prop_cycle(None)
         for key, fb in fintp.items():
             #M0 = M0_func(mag[key])
             Mw[count] = Mw_log(Mcorr[count])
             if plotting:
-                ax5.semilogx(fb, brune_log(fb, fcut[count], Mcorr[count]), 'o-', color=line.get_color())
+                ax5.semilogx(fb, brune_log(
+                    fb, fcut[count], Mcorr[count]), 'o-', color=line.get_color())
 
             var[count] = variance_reduction(
                 Aintp[key], brune_log(fb, fcut[count], Mcorr[count]))
             r2[count] = coeff_r2(Aintp[key], brune_log(
                 fb, fcut[count], Mcorr[count]))
-            print('fcut[', count, ']: ', '%5.2f' % fcut[count], ' Mcorr[', count, ']: ', '%5.2f' % Mcorr[count],
-                  ' Stress drop[', count, ']: ', '%6.3f' % stress[count], 'MPa   SNR: ' +
-                  '%5.1f' % snr[count],
-                  ' Mw[', count, ']: ', '%3.1f' % Mw[count], ' Md[', key, ']: ', '%3.1f' % mag[key], ' Res[', count, ']: ',
-                  '%5.3f' % var[count])
-            print('r2: ',var[count])
-            fout.write(station + '       '
-                       + type_wave + '     '
-                       + resp_type + '    '
-                       + date[key] + '    '
-                       + '%6.1f' % (Rij[count]/1e3) + '    '
-                       + '%3.1f' % mag[key] + '    '
-                       + '%3.1f' % Mw[count] + '    '
-                       + '%5.2f' % fcut[count] + '    ' +
-                         '%6.3f' % fcuts[count] + '    '
-                       + '%5.2f' % Mcorr[count] + '    ' +
-                         '%6.3f' % Mcorrs[count] + '    '
-                       + '%6.3f' % stress[count] + '    '
-                       + '%5.1f' % snr[count] + '    '
-                       + '%5.3f' % var[count] + '    '
-                       + '%5.1f' % r2[count] + '    ' + '\n')
+#            print('fcut[', count, ']: ', '%5.2f' % fcut[count], ' Mcorr[', count, ']: ', '%5.2f' % Mcorr[count],
+#                  ' Stress drop[', count, ']: ', '%6.3f' % stress[count], 'MPa   SNR: ' +
+#                  '%5.1f' % snr[count],
+#                  ' Mw[', count, ']: ', '%3.1f' % Mw[count], ' Md[', key, ']: ', '%3.1f' % mag[key], ' Res[', count, ']: ',
+#                  '%5.3f' % var[count])
+#            print('r2: ',var[count])
 
+            if count == 0:
+                header='Directory: ' + path
+                fout.write(header + '\n')
+                print(header) 
+                header='Nfft: ' + str(Nfft) + ' Win: ' + '%5.2f' % duration[k] + \
+				' fmin: ' + str(fmin) + 'Hz. fmax: ' + str(fmax) + 'Hz.' 
+                fout.write(header + '\n')
+                print(header) 
+                header='Station  Wave    Type      date_time         distance     Mcat  Mw     fcut   std_fcut    Mcorr  std_Mcorr	Stress    SNR     VarRed      R2    fs '
+                fout.write(header + '\n')
+                print(header)
+            output_str = station + '       ' + \
+			             type_wave + '     ' + \
+						 resp_type + '    ' +  \
+						 date[key] + '    ' + \
+						 '%6.1f' % (Rij[count]/1e3) + '    ' + \
+						 '%3.1f' % mag[key] + '    ' + \
+						 '%3.1f' % Mw[count] + '    ' + \
+						 '%5.2f' % fcut[count] + '    ' + \
+						 '%6.3f' % fcuts[count] + '    ' + \
+						 '%5.2f' % Mcorr[count] + '    ' + \
+						 '%6.3f' % Mcorrs[count] + '    ' + \
+						 '%6.3f' % stress[count] + '    ' + \
+						 '%5.1f' % snr[count] + '    ' + \
+						 '%5.3f' % var[count] + '    ' + \
+						 '%5.1f' % r2[count] + '    ' + \
+						 '%d' % (1./dt[key])
+            fout.write(output_str + '\n')
+            print(output_str)
             #			ax[0].grid(b=True, which='major', color='k', linestyle='--',linewidth=0.25)
             #			ax[0].grid(b=True, which='minor', color='k', linestyle='--',linewidth=0.25)
 
     if plotting:
         # closiing figure 1 - Waveforms
-        fig1.suptitle(date[k] + r' $M_{cat}$ = ' + '%3.1f' % mag[0] + ' - ' + resp_type + ' - ' + type_wave + ' wave')
+        fig1.suptitle(date[k] + r' $M_{cat}$ = ' + '%3.1f\n' %
+                      mag[0] + ' - ' + resp_type + ' - ' + type_wave + ' wave')
         fig1.savefig(waveform_out)
         plt.close(fig1)
 
     # closing figura 2 - P/S wave Zoom
-        fig2.suptitle(date[k] + r' $M_{cat}$ = ' + '%3.1f' % mag[0] + ' - ' + resp_type +
+        fig2.suptitle(date[k] + r' $M_{cat}$ = ' + '%3.1f' % mag[0] + ' \n ' + resp_type +
                       ' - ' + type_wave + ' wave')
         fig2.subplots_adjust(hspace=0, wspace=0)
         fig2.savefig(PS_out)
@@ -396,37 +426,37 @@ if __name__ == '__main__':
 
     # closing figure 3 - Spectrum
         ax3.legend(fontsize=14)
-        ax3.grid(b=True, which='major', color='k',
+        ax3.grid(visible=True, which='major', color='k',
                  linestyle='--', linewidth=0.25)
-        ax3.grid(b=True, which='minor', color='k',
+        ax3.grid(visible=True, which='minor', color='k',
                  linestyle='--', linewidth=0.25)
         ax3.set_xlabel('Frequency [Hz]', fontsize=14)
-        ax3.set_title('Original spectrum - ' + date[k] + r' $M_{cat}$ = ' + '%3.1f' % mag[0] +
-                  ' - ' + dict_title[resp_type], fontsize=14)
+        ax3.set_title('Original spectrum - ' + date[k] + '\n' + r' $M_{cat}$ = ' + '%3.1f' % mag[0] +
+                      ' - ' + dict_title[resp_type], fontsize=14)
         fig3.savefig(FFT_out)
         plt.close(fig3)
 
     # closing figura 4 -
         ax4.legend(fontsize=14)
-        ax4.grid(b=True, which='major', color='k',
+        ax4.grid(visible=True, which='major', color='k',
                  linestyle='--', linewidth=0.25)
-        ax4.grid(b=True, which='minor', color='k',
+        ax4.grid(visible=True, which='minor', color='k',
                  linestyle='--', linewidth=0.25)
         ax4.set_xlabel('Frequency [Hz]', fontsize=14)
         ax4.set_title('Spectrum - ' + r' $M_{cat}$ = ' + '%3.1f' % mag[0] + ' - ' +
-                  dict_title[resp_type], fontsize=14)
+                      dict_title[resp_type], fontsize=14)
         fig4.savefig(SPEC_out)
         plt.close(fig4)
 
     # closing figure 5 -
-        mean_stress=np.array(list(stress.values())).mean()
+        mean_stress = np.array(list(stress.values())).mean()
         ax5.legend(fontsize=14)
-        ax5.grid(b=True, which='major', color='k',
+        ax5.grid(visible=True, which='major', color='k',
                  linestyle='--', linewidth=0.25)
-        ax5.grid(b=True, which='minor', color='k',
+        ax5.grid(visible=True, which='minor', color='k',
                  linestyle='--', linewidth=0.25)
-        fig5.suptitle('Brune Spectrum ' + dict_title[resp_type] + ' - ' + date[k] 
-                     + '\nfc = ' + '%5.2f' % fcut[key] + 'Hz ' + r'$\Delta\sigma=$' + '%5.2f' % mean_stress + 'MPa', fontsize=17)
+        fig5.suptitle('Brune Spectrum ' + dict_title[resp_type] + ' - ' + date[k]
+                      + '\nfc = ' + '%5.2f' % fcut[key] + 'Hz ' + r'$\Delta\sigma=$' + '%5.2f' % mean_stress + 'MPa', fontsize=17)
         ax5.set_ylabel(r'$log_{10}($' + dict_title[resp_type] + ' Spectrum)')
         ax5.set_xlabel('Frequency [Hz]', fontsize=14)
         fig5.savefig(Brune_out)
@@ -435,5 +465,5 @@ if __name__ == '__main__':
     fout.close()
 
 
-#if __name__ == "__main__":
+# if __name__ == "__main__":
 #    main()
