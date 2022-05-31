@@ -175,7 +175,7 @@ if __name__ == '__main__':
         for k, tr in enumerate(sel):
             t = tr.times() + tr.stats.sac.b
             dt[k] = float(tr.stats.delta)
-            duration[k] = dt[k]*Nfft		
+            duration[count] = dt[k]*Nfft		
             if type_wave == 'P':
                 twave = tr.stats.sac.a
                 k_sd = 0.32   # Madariaga 1976 - See Shearer page 270
@@ -227,7 +227,7 @@ if __name__ == '__main__':
 
                 ax1[count].set_ylabel(dict_ylabel[resp_type], fontsize=14)
                 ax1[count].set_xlim(
-                    [np.floor(tp_wave.min()) - 10.0, np.ceil(tp_wave.max() + 20.0)])
+                    [np.floor(tp_wave.min()) - 1.5*duration[count], np.ceil(tp_wave.max() + 2.0*duration[count])])
 
                 x_lims_wave = ax1[count].get_xlim()
                 y_data_plot = np.where((aux.times() > x_lims_wave[0]) & (
@@ -379,6 +379,8 @@ if __name__ == '__main__':
 #            print('r2: ',var[count])
 
             if count == 0:
+                fout.write('cmd: python ' + ' '.join(sys.argv) + '\n')
+                print('cmd: python ' + ' '.join(sys.argv))
                 header='Directory: ' + path
                 fout.write(header + '\n')
                 print(header) 
@@ -461,7 +463,15 @@ if __name__ == '__main__':
         ax5.set_xlabel('Frequency [Hz]', fontsize=14)
         fig5.savefig(Brune_out)
         plt.close(fig5)
-
+    mean_Mw = np.array(list(Mw.values())).mean()
+    mean_M0 = np.array(list(Mcorr.values())).mean()
+    mean_fc = np.array(list(fcut.values())).mean()
+    mean_stress_drop = stress_drop(mean_fc, k_sd, vel['S'], pow(10,mean_M0))/1e6
+    tail='Mean:                                                          ' + \
+	     '%5.1f' % mean_Mw  +  '     ' + \
+		 '%4.2f' % mean_fc + '                                  ' + '%5.3f' % mean_stress_drop
+    print(tail)
+    fout.write(tail + '\n')
     fout.close()
 
 
